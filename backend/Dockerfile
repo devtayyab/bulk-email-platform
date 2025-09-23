@@ -1,6 +1,9 @@
 # Use the official Node.js image
 FROM node:18-alpine
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Set working directory
 WORKDIR /app
 
@@ -9,14 +12,14 @@ COPY package*.json ./
 COPY pnpm-lock.yaml ./
 
 # Install all dependencies (including dev dependencies for building)
-RUN npm ci
+RUN pnpm install
 
 # Copy source code and environment files
 COPY . .
 COPY .env .env
 
 # Build the application
-RUN npm run build
+RUN pnpm run build  
 
 # Create uploads directory
 RUN mkdir -p uploads
@@ -33,4 +36,4 @@ USER nextjs
 EXPOSE 3001
 
 # Start the application
-CMD ["npm", "run", "start:prod"]
+CMD ["pnpm", "run", "start:prod"]

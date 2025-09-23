@@ -27,9 +27,9 @@ command -v docker >/dev/null 2>&1 || { echo -e "${RED}❌ Docker is required but
 command -v docker-compose >/dev/null 2>&1 || { echo -e "${RED}❌ Docker Compose is required but not installed. Aborting.${NC}" >&2; exit 1; }
 
 # Login to AWS
-if ! aws sts get-caller-identity >/dev/null 2>&1; then
+if ! aws sts get-caller-identity --profile "bulk-email" >/dev/null 2>&1; then
     echo -e "${YELLOW}⚠️  AWS credentials not configured. Please configure them first.${NC}"
-    echo "Run: aws configure"
+    echo "Run: aws configure --profile bulk-email"
     exit 1
 fi
 
@@ -96,7 +96,7 @@ fi
 # Launch EC2 instance
 echo -e "${YELLOW}🚀 Launching EC2 instance...${NC}"
 INSTANCE_ID=$(aws ec2 run-instances \
-    --image-id ami-0c02fb55956c7d316 \
+    --image-id ami-074211ec8e88502be \
     --count 1 \
     --instance-type "$INSTANCE_TYPE" \
     --key-name "$KEY_PAIR_NAME" \
@@ -169,7 +169,7 @@ cd /opt/bulk-email-platform
 
 # Clone repository (replace with your actual repository URL)
 echo -e "${YELLOW}📥 Cloning repository...${NC}"
-git clone https://github.com/yourusername/bulk-email-platform.git .
+git clone https://github.com/devtayyab/bulk-email-platform.git .
 # Or copy from S3, etc.
 
 # Create environment file
@@ -250,7 +250,7 @@ chmod +x deploy-to-instance.sh
 echo -e "${GREEN}✅ AWS EC2 deployment setup completed!${NC}"
 echo ""
 echo -e "${YELLOW}📋 Next steps:${NC}"
-echo "1. Replace 'yourusername/bulk-email-platform' in deploy-to-instance.sh with your actual repository"
+echo "1. Replace 'devtayyab/bulk-email-platform' in deploy-to-instance.sh with your actual repository"
 echo "2. Update the .env file with your actual credentials"
 echo "3. Run: ./deploy-to-instance.sh to deploy to the instance"
 echo "4. Access your application at: http://$PUBLIC_IP"
