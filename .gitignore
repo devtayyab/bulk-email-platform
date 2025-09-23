@@ -1,0 +1,8 @@
+.env
+setup-instance.sh
+deploy-to-instance.sh
+verify-deployment.sh
+
+/frontend/node_modules
+/backend/node_modules
+

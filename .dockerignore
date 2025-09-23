@@ -1,0 +1,70 @@
+# Docker ignore file
+node_modules
+npm-debug.log
+.next
+.git
+.gitignore
+README.md
+.env
+.env.local
+.env.production
+.vercel
+*.log
+.DS_Store
+.vscode
+.idea
+coverage
+.nyc_output
+dist
+build
+.cache
+*.tsbuildinfo
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# AWS
+.aws/
+*.pem
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
