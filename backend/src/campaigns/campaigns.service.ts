@@ -117,4 +117,10 @@ export class CampaignsService {
       stats,
     };
   }
+
+  async updateCampaignStatus(id: string, status: 'draft' | 'queued' | 'sending' | 'completed' | 'failed') {
+    const campaign = await this.findOne(id);
+    campaign.status = status;
+    return await this.campaignRepository.save(campaign);
+  }
 }

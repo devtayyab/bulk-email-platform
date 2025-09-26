@@ -70,14 +70,14 @@ export class SqsService {
         QueueUrl: this.queueUrl,
         MaxNumberOfMessages: 10,
         WaitTimeSeconds: 20,
-        VisibilityTimeout: 300, // 5 minutes to process
+        VisibilityTimeout: 60, // Reduced to 1 minute - messages won't stay in flight as long
       });
 
       const response = await this.sqsClient.send(command);
       const messages = response.Messages || [];
 
       console.log(`SqsService: Received ${messages.length} messages from SQS`);
-      
+
       return messages.map((msg: Message) => ({
         message: JSON.parse(msg.Body!),
         receiptHandle: msg.ReceiptHandle!,

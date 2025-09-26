@@ -35,3 +35,56 @@ body {
 input, textarea {
   color: black;
 }
+
+/* React Quill Custom Styles */
+.ql-container {
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.ql-toolbar {
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+  border-color: #d1d5db;
+}
+
+.ql-editor {
+  min-height: 200px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.ql-editor.ql-blank::before {
+  color: #9ca3af;
+  font-style: normal;
+}
+
+.ql-toolbar .ql-picker-label {
+  color: #6b7280;
+}
+
+.ql-toolbar .ql-stroke {
+  stroke: #6b7280;
+}
+
+.ql-toolbar .ql-fill {
+  fill: #6b7280;
+}
+
+.ql-toolbar button:hover,
+.ql-toolbar button:focus {
+  color: #4f46e5;
+}
+
+.ql-toolbar button.ql-active {
+  color: #4f46e5;
+}
+
+.ql-toolbar .ql-active .ql-stroke {
+  stroke: #4f46e5;
+}
+
+.ql-toolbar .ql-active .ql-fill {
+  fill: #4f46e5;
+}

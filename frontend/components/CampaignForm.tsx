@@ -1,18 +1,40 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { campaignService } from '@/lib/campaignService'
 import { fileUploadService } from '@/lib/fileUploadService'
 import { ParsedRecipient } from '@/lib/types'
 import { Upload, X, Mail, User, FileText } from 'lucide-react'
 import * as React from 'react'
+import dynamic from 'next/dynamic'
+
+// Dynamically import React Quill to avoid SSR issues
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false })
+import 'react-quill/dist/quill.snow.css'
 
 interface FormData {
   name: string
   subject: string
   body: string
 }
+
+// Quill toolbar configuration
+const modules = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    [{ 'color': [] }, { 'background': [] }],
+    ['link', 'image'],
+    ['clean']
+  ],
+}
+
+const formats = [
+  'header', 'bold', 'italic', 'underline', 'strike',
+  'list', 'bullet', 'color', 'background', 'link', 'image'
+]
 
 export default function CampaignForm() {
   const [recipients, setRecipients] = useState<ParsedRecipient[]>([])
@@ -24,6 +46,7 @@ export default function CampaignForm() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<FormData>()
 
@@ -147,18 +170,29 @@ export default function CampaignForm() {
                 <label htmlFor="body" className="block text-sm font-medium text-gray-700">
                   Email Body
                 </label>
-                <textarea
-                  id="body"
-                  rows={6}
-                  {...register('body', { required: 'Body is required' })}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="Enter your email content here. You can use placeholders like {{name}} for personalization."
-                />
+                <div className="mt-1">
+                  <Controller
+                    name="body"
+                    control={control}
+                    rules={{ required: 'Body is required' }}
+                    render={({ field }) => (
+                      <ReactQuill
+                        {...field}
+                        theme="snow"
+                        modules={modules}
+                        formats={formats}
+                        placeholder="Enter your email content here. You can use placeholders like {{name}} for personalization."
+                        className="bg-white"
+                        style={{ minHeight: '200px' }}
+                      />
+                    )}
+                  />
+                </div>
                 {errors.body && (
                   <p className="mt-1 text-sm text-red-600">{errors.body.message}</p>
                 )}
                 <p className="mt-2 text-sm text-gray-500">
-                  Use placeholders like {'{{name}}'}, {'{{email}}'} for personalization
+                  Use placeholders like {'{{name}}'}, {'{{email}}'} for personalization. You can format text, add links, images, and more.
                 </p>
               </div>
             </div>
