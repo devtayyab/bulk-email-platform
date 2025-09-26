@@ -1,10 +1,13 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
-import { SqsService, EmailJobMessage } from '../sqs/sqs.service';
-import { EmailJobsService } from '../email-jobs/email-jobs.service';
+import { SqsService, EmailJobMessage, SQSMessage } from '../sqs/sqs.service';
+import { EmailJobsService } from '@/email-jobs/email-jobs.service';
 
 @Injectable()
-export class SqsConsumerService implements OnModuleInit {
+export class SqsConsumerService implements OnModuleInit, OnModuleDestroy {
+  private isConsuming = false;
+  private consumePromise: Promise<void> | null = null;
+
   constructor(
     private sqsService: SqsService,
     private emailService: EmailService,
@@ -12,59 +15,131 @@ export class SqsConsumerService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    // Start consuming messages when the module initializes
-    await this.startConsuming();
+    console.log('SqsConsumerService: Initializing module...');
+    try {
+      await this.startConsuming();
+    } catch (error) {
+      console.error('SqsConsumerService: Failed to start message consumption:', error);
+      throw error;
+    }
   }
 
-  private async startConsuming(): Promise<void> {
-    console.log('Starting SQS message consumer...');
+  async onModuleDestroy() {
+    console.log('SqsConsumerService: Stopping message consumption...');
+    this.isConsuming = false;
+    if (this.consumePromise) {
+      await this.consumePromise;
+    }
+  }
 
-    while (true) {
+  async startConsuming(): Promise<void> {
+    if (this.isConsuming) {
+      console.log('SqsConsumerService: Already consuming messages');
+      return;
+    }
+
+    this.isConsuming = true;
+    console.log('SqsConsumerService: Starting message consumption...');
+    
+    this.consumePromise = this.consumeLoop();
+  }
+
+  private async consumeLoop(): Promise<void> {
+    while (this.isConsuming) {
       try {
-        const messages = await this.sqsService.receiveMessages();
+        console.log('SqsConsumerService: Polling for messages...');
+        const sqsMessages = await this.sqsService.receiveMessages();
 
-        if (messages.length > 0) {
-          console.log(`Received ${messages.length} messages from SQS`);
+        if (sqsMessages.length > 0) {
+          console.log(`SqsConsumerService: Processing ${sqsMessages.length} messages`);
+          
+          // Process messages in parallel but with controlled concurrency
+          const processPromises = sqsMessages.map(sqsMessage => 
+            this.processMessage(sqsMessage.message, sqsMessage.receiptHandle)
+              .catch(error => {
+                console.error(`SqsConsumerService: Failed to process message:`, error);
+                // Continue processing other messages even if one fails
+              })
+          );
 
-          for (const message of messages) {
-            await this.processMessage(message);
-          }
+          await Promise.allSettled(processPromises);
         } else {
-          // Wait before checking for new messages
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          console.log('SqsConsumerService: No messages received, continuing to poll...');
         }
+        
+        // Small delay to prevent overwhelming the CPU when no messages
+        await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.error('Error consuming SQS messages:', error);
-        // Wait before retrying
+        console.error('SqsConsumerService: Error consuming SQS messages:', error);  
+        // Wait before retrying on error
         await new Promise(resolve => setTimeout(resolve, 10000));
       }
     }
   }
 
-  private async processMessage(message: EmailJobMessage): Promise<void> {
+  private async processMessage(message: EmailJobMessage, receiptHandle: string): Promise<void> {
+    console.log(`SqsConsumerService: Processing message for ${message.recipientEmail}, jobId: ${message.jobId}`);
+    
     try {
-      console.log(`Processing email to ${message.recipientEmail}`);
-
-      // Update job status to queued
+      // Update status to processing
       await this.emailJobsService.updateStatus(message.jobId, {
         status: 'queued',
       });
 
-      // Send the email
+      console.log(`SqsConsumerService: Sending email to ${message.recipientEmail}`);
       const success = await this.emailService.sendEmail(message);
 
+      console.log("success", success)
+
       if (success) {
-        console.log(`Email sent successfully to ${message.recipientEmail}`);
+        console.log(`SqsConsumerService: Email sent successfully to ${message.recipientEmail}`);
+        
+        // Update job status to completed
+        await this.emailJobsService.updateStatus(message.jobId, {
+          status: 'sent',
+        });
+        
+        // Delete message from queue
+        await this.sqsService.deleteMessage(receiptHandle);
+        console.log(`SqsConsumerService: Message deleted from queue for ${message.recipientEmail}`);
+        
       } else {
-        console.log(`Failed to send email to ${message.recipientEmail}`);
+        console.log(`SqsConsumerService: Email sending failed for ${message.recipientEmail}`);
+        
+        // Update job status to failed
+        await this.emailJobsService.updateStatus(message.jobId, {
+          status: 'failed',
+          error: 'Email sending failed',
+        });
+        
+        // Send to dead letter queue
+        await this.sqsService.sendToDeadLetterQueue(message, 'Email sending failed');
+        
+        // Delete message from main queue
+        await this.sqsService.deleteMessage(receiptHandle);
       }
 
-      // Note: Message deletion is handled by the successful send or by the DLQ logic in EmailService
     } catch (error) {
-      console.error(`Error processing message for ${message.recipientEmail}:`, error);
+      console.error(`SqsConsumerService: Error processing message for ${message.recipientEmail}:`, error);
 
-      // Send to dead letter queue on critical errors
-      await this.sqsService.sendToDeadLetterQueue(message, error.message);
+      try {
+        // Update job status to failed
+        await this.emailJobsService.updateStatus(message.jobId, {
+          status: 'failed',
+          error: error.message,
+        });
+
+        // Send to dead letter queue on critical errors
+        console.log(`SqsConsumerService: Sending message to dead letter queue...`);
+        await this.sqsService.sendToDeadLetterQueue(message, error.message);
+        
+        // Delete message from main queue
+        await this.sqsService.deleteMessage(receiptHandle);
+        console.log(`SqsConsumerService: Message sent to dead letter queue successfully`);
+      } catch (dlqError) {
+        console.error(`SqsConsumerService: Failed to handle error for message:`, dlqError);
+        // Message will become visible again after visibility timeout
+      }
     }
   }
 }

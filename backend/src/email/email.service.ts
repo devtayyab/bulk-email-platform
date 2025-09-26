@@ -22,7 +22,11 @@ export class EmailService {
         html: this.replacePlaceholders(message.body, message.recipientData || {}),
       };
 
-      await sgMail.send(msg);
+   await sgMail.send(msg).then((result) => {
+      console.log("sendGridResult", result)
+    }).catch((error) => {
+      console.log("sendGridResult", error)
+    });
 
       // Update job status to sent
       await this.emailJobsService.updateStatus(message.jobId, {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SQSClient, SendMessageCommand, ReceiveMessageCommand, DeleteMessageCommand } from '@aws-sdk/client-sqs';
+import { SQSClient, SendMessageCommand, ReceiveMessageCommand, DeleteMessageCommand, Message } from '@aws-sdk/client-sqs';
 
 export interface EmailJobMessage {
   campaignId: string;
@@ -11,6 +11,12 @@ export interface EmailJobMessage {
   recipientData?: Record<string, any>;
 }
 
+export interface SQSMessage {
+  message: EmailJobMessage;
+  receiptHandle: string;
+  messageId?: string;
+}
+
 @Injectable()
 export class SqsService {
   private sqsClient: SQSClient;
@@ -18,61 +24,108 @@ export class SqsService {
   private dlqUrl: string;
 
   constructor(private configService: ConfigService) {
+    // Validate required configuration
+    const region = this.configService.get('aws.region');
+    const accessKeyId = this.configService.get('aws.accessKeyId');
+    const secretAccessKey = this.configService.get('aws.secretAccessKey');
+    const queueUrl = this.configService.get('aws.sqs.queueUrl');
+    const dlqUrl = this.configService.get('aws.sqs.dlqUrl');
+
+    if (!region || !accessKeyId || !secretAccessKey || !queueUrl || !dlqUrl) {
+      throw new Error('Missing required AWS SQS configuration. Please check your environment variables.');
+    }
+
     this.sqsClient = new SQSClient({
-      region: this.configService.get('aws.region'),
+      region,
       credentials: {
-        accessKeyId: this.configService.get('aws.accessKeyId')!,
-        secretAccessKey: this.configService.get('aws.secretAccessKey')!,
+        accessKeyId,
+        secretAccessKey,
       },
     });
 
-    this.queueUrl = this.configService.get('aws.sqs.queueUrl')!;
-    this.dlqUrl = this.configService.get('aws.sqs.dlqUrl')!;
+    this.queueUrl = queueUrl;
+    this.dlqUrl = dlqUrl;
   }
 
   async sendMessage(message: EmailJobMessage): Promise<void> {
-    const command = new SendMessageCommand({
-      QueueUrl: this.queueUrl,
-      MessageBody: JSON.stringify(message),
-    });
+    try {
+      console.log(`SqsService: Sending message to queue for ${message.recipientEmail}`);
 
-    await this.sqsClient.send(command);
+      const command = new SendMessageCommand({
+        QueueUrl: this.queueUrl,
+        MessageBody: JSON.stringify(message),
+      });
+
+      const result = await this.sqsClient.send(command);
+    } catch (error) {
+      console.error(`SqsService: Failed to send message for ${message.recipientEmail}:`, error);
+      throw error;
+    }
   }
 
-  async receiveMessages(): Promise<EmailJobMessage[]> {
-    const command = new ReceiveMessageCommand({
-      QueueUrl: this.queueUrl,
-      MaxNumberOfMessages: 10,
-      WaitTimeSeconds: 20,
-    });
 
-    const response = await this.sqsClient.send(command);
-    const messages = response.Messages || [];
+  async receiveMessages(): Promise<SQSMessage[]> {
+    try {
+      const command = new ReceiveMessageCommand({
+        QueueUrl: this.queueUrl,
+        MaxNumberOfMessages: 10,
+        WaitTimeSeconds: 20,
+        VisibilityTimeout: 300, // 5 minutes to process
+      });
 
-    return messages.map(msg => JSON.parse(msg.Body!));
+      const response = await this.sqsClient.send(command);
+      const messages = response.Messages || [];
+
+      console.log(`SqsService: Received ${messages.length} messages from SQS`);
+      
+      return messages.map((msg: Message) => ({
+        message: JSON.parse(msg.Body!),
+        receiptHandle: msg.ReceiptHandle!,
+        messageId: msg.MessageId,
+      }));
+    } catch (error) {
+      console.error('SqsService: Failed to receive messages from SQS:', error);
+      throw error;
+    }
   }
 
   async deleteMessage(receiptHandle: string): Promise<void> {
-    const command = new DeleteMessageCommand({
-      QueueUrl: this.queueUrl,
-      ReceiptHandle: receiptHandle,
-    });
+    try {
+      console.log('SqsService: Deleting message from queue...');
 
-    await this.sqsClient.send(command);
+      const command = new DeleteMessageCommand({
+        QueueUrl: this.queueUrl,
+        ReceiptHandle: receiptHandle,
+      });
+
+      await this.sqsClient.send(command);
+      console.log('SqsService: Message deleted successfully');
+    } catch (error) {
+      console.error('SqsService: Failed to delete message:', error);
+      throw error;
+    }
   }
 
   async sendToDeadLetterQueue(message: EmailJobMessage, error: string): Promise<void> {
-    const deadLetterMessage = {
-      ...message,
-      error,
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      console.log(`SqsService: Sending message to DLQ for ${message.recipientEmail}`);
 
-    const command = new SendMessageCommand({
-      QueueUrl: this.dlqUrl,
-      MessageBody: JSON.stringify(deadLetterMessage),
-    });
+      const deadLetterMessage = {
+        ...message,
+        error,
+        timestamp: new Date().toISOString(),
+      };
 
-    await this.sqsClient.send(command);
+      const command = new SendMessageCommand({
+        QueueUrl: this.dlqUrl,
+        MessageBody: JSON.stringify(deadLetterMessage),
+      });
+
+      await this.sqsClient.send(command);
+      console.log(`SqsService: Message sent to DLQ successfully for ${message.recipientEmail}`);
+    } catch (error) {
+      console.error(`SqsService: Failed to send message to DLQ for ${message.recipientEmail}:`, error);
+      throw error;
+    }
   }
 }

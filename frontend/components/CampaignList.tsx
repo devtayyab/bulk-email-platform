@@ -120,7 +120,7 @@ export default function CampaignList() {
                     <Play className="h-4 w-4 mr-1" />
                     Start
                   </button>
-                  <button
+                  {/* <button
                     onClick={() => {
                       // TODO: Implement view campaign details
                       console.log('View campaign:', campaign.id)
@@ -136,7 +136,7 @@ export default function CampaignList() {
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
                     Delete
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </li>

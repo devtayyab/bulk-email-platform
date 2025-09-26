@@ -6,11 +6,11 @@ export class EmailJob {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column('uuid')
+  @Column('uuid', { name: 'campaign_id' })
   campaignId: string;
 
   @ManyToOne(() => Campaign, (campaign) => campaign.jobs)
-  @JoinColumn({ name: 'campaign_id' })
+  @JoinColumn({ name: 'campaign_id', referencedColumnName: 'id' })
   campaign: Campaign;
 
   @Column()

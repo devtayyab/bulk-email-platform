@@ -8,7 +8,7 @@ import configuration from './config/configuration';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { EmailJobsModule } from './email-jobs/email-jobs.module';
 import { EmailService } from './email/email.service';
-import { SqsService } from './sqs/sqs.service';
+import { SqsModule } from './sqs/sqs.module'; // Create this module
 import { FileUploadModule } from './file-upload/file-upload.module';
 
 @Module({
@@ -21,8 +21,9 @@ import { FileUploadModule } from './file-upload/file-upload.module';
     CampaignsModule,
     EmailJobsModule,
     FileUploadModule,
+    SqsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, EmailService, SqsService],
+  providers: [AppService, EmailService],
 })
 export class AppModule {}

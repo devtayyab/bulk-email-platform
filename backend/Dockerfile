@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY pnpm-lock.yaml ./
+COPY pnpm-lock.yaml ./ 
 
 # Install all dependencies (including dev dependencies for building)
 RUN pnpm install
@@ -26,11 +26,11 @@ RUN mkdir -p uploads
 
 # Create a non-root user
 RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+RUN adduser -S nodejs -u 1001
 
 # Change ownership of app directory
-RUN chown -R nextjs:nodejs /app
-USER nextjs
+RUN chown -R nodejs:nodejs /app
+USER nodejs
 
 # Expose port
 EXPOSE 3001

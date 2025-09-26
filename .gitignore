@@ -7,3 +7,5 @@
 /backend/dist
 
 /frontend/.next
+
+/frontend/.next/*
