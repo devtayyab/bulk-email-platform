@@ -1,5 +1,6 @@
 # Base image
 FROM node:18-alpine AS base
+RUN apk add --no-cache libc6-compat && npm install -g pnpm@latest
 
 # Install dependencies
 FROM base AS deps
@@ -19,7 +20,7 @@ FROM node:18-alpine AS runner
 WORKDIR /app
 
 # Install pnpm in runner for the CMD
-RUN npm install -g pnpm
+RUN apk add --no-cache libc6-compat && npm install -g pnpm@latest
 
 ENV NODE_ENV=production
 ENV PORT=3000
