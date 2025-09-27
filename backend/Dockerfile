@@ -1,8 +1,8 @@
 # Use the official Node.js image
 FROM node:18-alpine
 
-# Install system dependencies and pnpm
-RUN apk add --no-cache libc6-compat && npm install -g pnpm@latest
+# Install pnpm
+RUN npm install -g pnpm
 
 # Set working directory
 WORKDIR /app
