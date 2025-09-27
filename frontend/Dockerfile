@@ -1,12 +1,11 @@
 # Base image
 FROM node:18-alpine AS base
-RUN npm install -g pnpm
 
 # Install dependencies
 FROM base AS deps
 WORKDIR /app
-COPY package.json ./
-RUN pnpm install
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile
 
 # Build stage
 FROM base AS builder
@@ -18,6 +17,9 @@ RUN pnpm run build
 # Production runner
 FROM node:18-alpine AS runner
 WORKDIR /app
+
+# Install pnpm in runner for the CMD
+RUN npm install -g pnpm
 
 ENV NODE_ENV=production
 ENV PORT=3000
