@@ -38,11 +38,12 @@ export interface CreateCampaignData {
   name: string
   subject: string
   body: string
-  recipients: Array<{
+  recipients?: Array<{
     email: string
     data?: Record<string, any>
   }>
   metadata?: Record<string, any>
+  includeExistingEmails?: boolean
 }
 
 export interface ParsedRecipient {

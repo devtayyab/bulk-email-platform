@@ -17,6 +17,7 @@ interface FormData {
   name: string
   subject: string
   body: string
+  includeExistingEmails?: boolean
 }
 
 // Quill toolbar configuration
@@ -41,12 +42,14 @@ export default function CampaignForm() {
   const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [includeExistingEmails, setIncludeExistingEmails] = useState(false)
 
   const {
     register,
     handleSubmit,
     reset,
     control,
+    watch,
     formState: { errors },
   } = useForm<FormData>()
 
@@ -101,8 +104,9 @@ export default function CampaignForm() {
   }
 
   const onSubmit = async (data: FormData) => {
-    if (recipients.length === 0) {
-      alert('Please upload a file with recipients')
+    // Allow campaigns without uploaded recipients if includeExistingEmails is true
+    if (recipients.length === 0 && !includeExistingEmails) {
+      alert('Please upload recipients or enable "Include existing emails"')
       return
     }
 
@@ -112,12 +116,14 @@ export default function CampaignForm() {
         name: data.name,
         subject: data.subject,
         body: data.body,
-        recipients,
+        recipients: recipients.length > 0 ? recipients : undefined,
+        includeExistingEmails: includeExistingEmails,
       })
 
       alert('Campaign created successfully!')
       reset()
       setRecipients([])
+      setIncludeExistingEmails(false)
     } catch (error) {
       console.error('Error creating campaign:', error)
       alert('Failed to create campaign')
@@ -238,6 +244,20 @@ export default function CampaignForm() {
               </div>
             </div>
 
+            {/* Include Existing Emails Option */}
+            <div className="flex items-center">
+              <input
+                id="includeExistingEmails"
+                type="checkbox"
+                checked={includeExistingEmails}
+                onChange={(e) => setIncludeExistingEmails(e.target.checked)}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              />
+              <label htmlFor="includeExistingEmails" className="ml-2 block text-sm text-gray-900">
+                Include existing emails from previous campaigns
+              </label>
+            </div>
+
             {recipients.length > 0 && (
               <div>
                 <div className="flex justify-between items-center mb-2">
@@ -287,6 +307,7 @@ export default function CampaignForm() {
                 onClick={() => {
                   reset()
                   setRecipients([])
+                  setIncludeExistingEmails(false)
                 }}
                 className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-3"
               >
@@ -294,7 +315,7 @@ export default function CampaignForm() {
               </button>
               <button
                 type="submit"
-                disabled={submitting || recipients.length === 0}
+                disabled={submitting || (recipients.length === 0 && !includeExistingEmails)}
                 className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 {submitting ? 'Creating...' : 'Create Campaign'}
