@@ -26,21 +26,72 @@ export class CampaignsService {
 
     const savedCampaign = await this.campaignRepository.save(campaign);
 
-    // Create email jobs from the uploaded data
-    if (createCampaignDto.recipients && createCampaignDto.recipients.length > 0) {
-      const emailJobs = createCampaignDto.recipients.map(recipient => ({
-        campaignId: savedCampaign.id,
-        recipientEmail: recipient.email,
-        recipientData: recipient.data || {},
-        status: 'pending' as const,
-      }));
+    // Get recipients - either from provided list or from existing emails
+    let recipients = createCampaignDto.recipients || [];
 
-      await this.emailJobRepository.save(emailJobs);
+    // If includeExistingEmails is true and no recipients provided, get all existing emails
+    if (createCampaignDto.includeExistingEmails && (!recipients || recipients.length === 0)) {
+      recipients = await this.getAllExistingEmails();
     }
+
+    // If includeExistingEmails is true and recipients are provided, merge them with existing emails
+    if (createCampaignDto.includeExistingEmails && createCampaignDto.recipients && createCampaignDto.recipients.length > 0) {
+      const existingEmails = await this.getAllExistingEmails();
+      const existingEmailSet = new Set(existingEmails.map(r => r.email));
+
+      // Add new recipients that aren't already in existing emails
+      const newRecipients = createCampaignDto.recipients.filter(r => !existingEmailSet.has(r.email));
+      recipients = [...existingEmails, ...newRecipients];
+    }
+
+    if (recipients.length === 0) {
+      throw new BadRequestException('No recipients found. Please provide recipients or enable includeExistingEmails.');
+    }
+
+    // Create email jobs from the recipients
+    const emailJobs = recipients.map(recipient => ({
+      campaignId: savedCampaign.id,
+      recipientEmail: recipient.email,
+      recipientData: recipient.data || {},
+      status: 'pending' as const,
+    }));
+
+    await this.emailJobRepository.save(emailJobs);
 
     return savedCampaign;
   }
 
+  async getAllExistingEmails() {
+    // Use database query to get distinct emails directly (more efficient for large datasets)
+    const distinctEmails = await this.emailJobRepository
+      .createQueryBuilder('job')
+      .select('DISTINCT job.recipientEmail', 'email')
+      .addSelect('job.recipientData', 'data')
+      .getRawMany();
+
+    // Group by email and merge data in application layer
+    const emailMap = new Map<string, any>();
+    distinctEmails.forEach(row => {
+      const email = row.email;
+      const data = row.data;
+
+      if (!emailMap.has(email)) {
+        emailMap.set(email, {
+          email,
+          data: data || {},
+        });
+      } else {
+        // Merge data if email already exists
+        const existingData = emailMap.get(email)?.data || {};
+        emailMap.set(email, {
+          email,
+          data: { ...existingData, ...(data || {}) },
+        });
+      }
+    });
+
+    return Array.from(emailMap.values());
+  }
   async findAll(): Promise<Campaign[]> {
     return this.campaignRepository.find({
       relations: ['jobs'],

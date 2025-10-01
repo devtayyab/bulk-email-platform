@@ -42,4 +42,11 @@ export class CampaignsController {
   getStats(@Param('id') id: string) {
     return this.campaignsService.getCampaignStats(id);
   }
+
+  @Get('emails/existing')
+  @ApiOperation({ summary: 'Get all existing email addresses from previous campaigns' })
+  @ApiResponse({ status: 200, description: 'List of all existing email addresses' })
+  getExistingEmails() {
+    return this.campaignsService.getAllExistingEmails();
+  }
 }

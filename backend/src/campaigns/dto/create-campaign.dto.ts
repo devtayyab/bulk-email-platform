@@ -1,4 +1,4 @@
-import { IsString, IsArray, IsObject, ValidateNested, IsOptional } from 'class-validator';
+import { IsString, IsArray, IsObject, ValidateNested, IsOptional, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class RecipientDto {
@@ -23,9 +23,14 @@ export class CreateCampaignDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RecipientDto)
-  recipients: RecipientDto[];
+  @IsOptional()
+  recipients?: RecipientDto[];
 
   @IsObject()
   @IsOptional()
   metadata?: Record<string, any>;
+
+  @IsBoolean()
+  @IsOptional()
+  includeExistingEmails?: boolean;
 }
