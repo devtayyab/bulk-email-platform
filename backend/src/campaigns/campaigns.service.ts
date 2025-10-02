@@ -65,8 +65,8 @@ export class CampaignsService {
     // Use database query to get distinct emails directly (more efficient for large datasets)
     const distinctEmails = await this.emailJobRepository
       .createQueryBuilder('job')
-      .select('DISTINCT job.recipientEmail', 'email')
-      .addSelect('job.recipientData', 'data')
+      .select('DISTINCT job.recipientEmail as email')
+      .addSelect('job.recipientData as data')
       .getRawMany();
 
     // Group by email and merge data in application layer
@@ -92,6 +92,7 @@ export class CampaignsService {
 
     return Array.from(emailMap.values());
   }
+
   async findAll(): Promise<Campaign[]> {
     return this.campaignRepository.find({
       relations: ['jobs'],
