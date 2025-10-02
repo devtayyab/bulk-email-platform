@@ -17,27 +17,14 @@ export class EmailService {
     try {
       const htmlContent = this.replacePlaceholders(message.body, message.recipientData || {});
 
-
       const msg = {
         to: message.recipientEmail,
         from: this.configService.get('sendgrid.fromEmail')!,
         subject: message.subject,
-        html: htmlContent,      
+        html: htmlContent,
       };
 
-      console.log('=== EMAIL DEBUG INFO ===');
-      console.log('To:', message.recipientEmail);
-      console.log('Subject:', message.subject);
-      console.log('HTML Content Length:', htmlContent.length);
-      console.log('HTML Preview (first 500 chars):');
-      console.log(htmlContent.substring(0, 500) + '...');
-      console.log('Contains HTML tag:', htmlContent.includes('<html>'));
-      console.log('Contains DOCTYPE:', htmlContent.includes('<!DOCTYPE'));
-      console.log('Contains <body>:', htmlContent.includes('<body>'));
-      console.log('========================');
-
-      const result = await sgMail.send(msg);
-      console.log("SendGrid Result:", JSON.stringify(result, null, 2));
+      await sgMail.send(msg);
 
       // Update job status to sent
       await this.emailJobsService.updateStatus(message.jobId, {
@@ -52,7 +39,7 @@ export class EmailService {
       await this.emailJobsService.updateStatus(message.jobId, {
         status: 'failed',
         error: error.message,
-        retryCount: 1, // This will be incremented by the consumer
+        retryCount: 1,
       });
 
       return false;
@@ -62,18 +49,15 @@ export class EmailService {
   private replacePlaceholders(template: string, data: Record<string, any>): string {
     let result = template;
 
-    // Replace placeholders like {{name}}, {{email}}, etc.
     Object.entries(data).forEach(([key, value]) => {
       const placeholder = new RegExp(`{{${key}}}`, 'g');
-      result = result.replace(placeholder, String(value || ''));
+      result = result.replace(placeholder, this.escapeHtml(String(value || '')));
     });
 
     return result;
   }
 
-
   private escapeHtml(text: string): string {
-    // Simple HTML escaping for server-side environment
     return text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
