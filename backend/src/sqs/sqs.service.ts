@@ -49,8 +49,6 @@ export class SqsService {
 
   async sendMessage(message: EmailJobMessage): Promise<void> {
     try {
-      console.log(`SqsService: Sending message to queue for ${message.recipientEmail}`);
-
       const command = new SendMessageCommand({
         QueueUrl: this.queueUrl,
         MessageBody: JSON.stringify(message),
@@ -59,7 +57,7 @@ export class SqsService {
       const result = await this.sqsClient.send(command);
     } catch (error) {
       console.error(`SqsService: Failed to send message for ${message.recipientEmail}:`, error);
-      throw error;
+      throw error;  
     }
   }
 
@@ -75,9 +73,7 @@ export class SqsService {
 
       const response = await this.sqsClient.send(command);
       const messages = response.Messages || [];
-
-      console.log(`SqsService: Received ${messages.length} messages from SQS`);
-
+      
       return messages.map((msg: Message) => ({
         message: JSON.parse(msg.Body!),
         receiptHandle: msg.ReceiptHandle!,
@@ -91,15 +87,12 @@ export class SqsService {
 
   async deleteMessage(receiptHandle: string): Promise<void> {
     try {
-      console.log('SqsService: Deleting message from queue...');
-
       const command = new DeleteMessageCommand({
         QueueUrl: this.queueUrl,
         ReceiptHandle: receiptHandle,
       });
 
       await this.sqsClient.send(command);
-      console.log('SqsService: Message deleted successfully');
     } catch (error) {
       console.error('SqsService: Failed to delete message:', error);
       throw error;
@@ -108,8 +101,6 @@ export class SqsService {
 
   async sendToDeadLetterQueue(message: EmailJobMessage, error: string): Promise<void> {
     try {
-      console.log(`SqsService: Sending message to DLQ for ${message.recipientEmail}`);
-
       const deadLetterMessage = {
         ...message,
         error,

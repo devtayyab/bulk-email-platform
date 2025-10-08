@@ -175,4 +175,14 @@ export class CampaignsService {
     campaign.status = status;
     return await this.campaignRepository.save(campaign);
   }
+
+  async remove(id: string): Promise<void> {
+    const campaign = await this.findOne(id);
+    
+    // Delete all associated email jobs first
+    await this.emailJobRepository.delete({ campaignId: id });
+    
+    // Delete the campaign
+    await this.campaignRepository.remove(campaign);
+  }
 }

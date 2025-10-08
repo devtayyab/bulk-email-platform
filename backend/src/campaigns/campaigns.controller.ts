@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
@@ -48,5 +48,14 @@ export class CampaignsController {
   @ApiResponse({ status: 200, description: 'List of all existing email addresses' })
   getExistingEmails() {
     return this.campaignsService.getAllExistingEmails();
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a campaign' })
+  @ApiResponse({ status: 200, description: 'Campaign deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Campaign not found' })
+  async remove(@Param('id') id: string) {
+    await this.campaignsService.remove(id);
+    return { message: 'Campaign deleted successfully' };
   }
 }

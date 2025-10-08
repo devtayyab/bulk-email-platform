@@ -26,4 +26,8 @@ export const campaignService = {
     const response = await api.get(`/campaigns/${id}/stats`)
     return response.data
   },
+
+  async deleteCampaign(id: string): Promise<void> {
+    await api.delete(`/campaigns/${id}`)
+  },
 }

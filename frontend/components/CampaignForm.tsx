@@ -43,6 +43,7 @@ export default function CampaignForm() {
   const [submitting, setSubmitting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [includeExistingEmails, setIncludeExistingEmails] = useState(false)
+  const [isRawHtml, setIsRawHtml] = useState(false)
 
   const {
     register,
@@ -173,32 +174,63 @@ export default function CampaignForm() {
               </div>
 
               <div className="sm:col-span-2">
-                <label htmlFor="body" className="block text-sm font-medium text-gray-700">
-                  Email Body
-                </label>
-                <div className="mt-1">
-                  <Controller
-                    name="body"
-                    control={control}
-                    rules={{ required: 'Body is required' }}
-                    render={({ field }) => (
-                      <ReactQuill
-                        {...field}
-                        theme="snow"
-                        modules={modules}
-                        formats={formats}
-                        placeholder="Enter your email content here. You can use placeholders like {{name}} for personalization."
-                        className="bg-white"
-                        style={{ minHeight: '200px' }}
+                <div className="flex justify-between items-center mb-2">
+                  <label htmlFor="body" className="block text-sm font-medium text-gray-700">
+                    Email Body
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Rich Text</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsRawHtml(!isRawHtml)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                        isRawHtml ? 'bg-indigo-600' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          isRawHtml ? 'translate-x-6' : 'translate-x-1'
+                        }`}
                       />
-                    )}
-                  />
+                    </button>
+                    <span className="text-sm text-gray-600">Raw HTML</span>
+                  </div>
+                </div>
+                <div className="mt-1">
+                  {isRawHtml ? (
+                    <textarea
+                      {...register('body', { required: 'Body is required' })}
+                      rows={12}
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono"
+                      placeholder="Enter raw HTML here. Example: <h1>Hello World</h1><p>Welcome to our newsletter!</p>"
+                    />
+                  ) : (
+                    <Controller
+                      name="body"
+                      control={control}
+                      rules={{ required: 'Body is required' }}
+                      render={({ field }) => (
+                        <ReactQuill
+                          {...field}
+                          theme="snow"
+                          modules={modules}
+                          formats={formats}
+                          placeholder="Enter your email content here. You can use placeholders like {{name}} for personalization."
+                          className="bg-white"
+                          style={{ minHeight: '200px' }}
+                        />
+                      )}
+                    />
+                  )}
                 </div>
                 {errors.body && (
                   <p className="mt-1 text-sm text-red-600">{errors.body.message}</p>
                 )}
                 <p className="mt-2 text-sm text-gray-500">
-                  Use placeholders like {'{{name}}'}, {'{{email}}'} for personalization. You can format text, add links, images, and more.
+                  {isRawHtml 
+                    ? 'Enter raw HTML code. Use placeholders like {{name}}, {{email}} for personalization.'
+                    : 'Use placeholders like {{name}}, {{email}} for personalization. You can format text, add links, images, and more.'
+                  }
                 </p>
               </div>
             </div>
