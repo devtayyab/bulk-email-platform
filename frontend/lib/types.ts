@@ -44,6 +44,7 @@ export interface CreateCampaignData {
   }>
   metadata?: Record<string, any>
   includeExistingEmails?: boolean
+  selectedEmails?: string[]
 }
 
 export interface ParsedRecipient {

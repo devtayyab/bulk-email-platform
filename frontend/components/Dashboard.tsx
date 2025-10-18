@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { campaignService } from '@/lib/campaignService'
-import { CampaignStats } from '@/lib/types'
-import { BarChart3, Mail, AlertCircle, Clock, CheckCircle } from 'lucide-react'
+import { CampaignStats, Campaign } from '@/lib/types'
+import { BarChart3, Mail, AlertCircle, Clock, CheckCircle, Eye } from 'lucide-react'
+import CampaignDetails from './CampaignDetails'
 
 export default function Dashboard() {
   const [stats, setStats] = useState<CampaignStats[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null)
 
   useEffect(() => {
     loadDashboard()
@@ -170,7 +172,7 @@ export default function Dashboard() {
               {stats.map((stat) => (
                 <div key={stat.campaign.id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1">
                       <h4 className="text-lg font-medium text-gray-900">
                         {stat.campaign.name}
                       </h4>
@@ -181,21 +183,30 @@ export default function Dashboard() {
                         Created: {new Date(stat.campaign.createdAt).toLocaleString()}
                       </p>
                     </div>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        stat.campaign.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : stat.campaign.status === 'failed'
-                          ? 'bg-red-100 text-red-800'
-                          : stat.campaign.status === 'sending'
-                          ? 'bg-blue-100 text-blue-800'
-                          : stat.campaign.status === 'queued'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {stat.campaign.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedCampaign(stat.campaign)}
+                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </button>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          stat.campaign.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : stat.campaign.status === 'failed'
+                            ? 'bg-red-100 text-red-800'
+                            : stat.campaign.status === 'sending'
+                            ? 'bg-blue-100 text-blue-800'
+                            : stat.campaign.status === 'queued'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {stat.campaign.status}
+                      </span>
+                    </div>
                   </div>
                   <div className="mt-4 grid grid-cols-4 gap-4 text-sm">
                     <div>
@@ -229,6 +240,13 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+      
+      {selectedCampaign && (
+        <CampaignDetails
+          campaign={selectedCampaign}
+          onClose={() => setSelectedCampaign(null)}
+        />
+      )}
     </div>
   )
 }

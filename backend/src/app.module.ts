@@ -10,6 +10,7 @@ import { EmailJobsModule } from './email-jobs/email-jobs.module';
 import { EmailService } from './email/email.service';
 import { SqsModule } from './sqs/sqs.module'; // Create this module
 import { FileUploadModule } from './file-upload/file-upload.module';
+import { EmailsModule } from './emails/emails.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { FileUploadModule } from './file-upload/file-upload.module';
     EmailJobsModule,
     FileUploadModule,
     SqsModule,
+    EmailsModule,
   ],
   controllers: [AppController],
   providers: [AppService, EmailService],

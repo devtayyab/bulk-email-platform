@@ -5,9 +5,10 @@ import { useForm, Controller } from 'react-hook-form'
 import { campaignService } from '@/lib/campaignService'
 import { fileUploadService } from '@/lib/fileUploadService'
 import { ParsedRecipient } from '@/lib/types'
-import { Upload, X, Mail, User, FileText } from 'lucide-react'
+import { Upload, X, Mail, User, FileText, ChevronDown, ChevronUp } from 'lucide-react'
 import * as React from 'react'
 import dynamic from 'next/dynamic'
+import EmailManagementTable from './EmailManagementTable'
 
 // Dynamically import React Quill to avoid SSR issues
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false })
@@ -44,6 +45,8 @@ export default function CampaignForm() {
   const [dragOver, setDragOver] = useState(false)
   const [includeExistingEmails, setIncludeExistingEmails] = useState(false)
   const [isRawHtml, setIsRawHtml] = useState(false)
+  const [selectedEmails, setSelectedEmails] = useState<string[]>([])
+  const [showEmailTable, setShowEmailTable] = useState(false)
 
   const {
     register,
@@ -105,9 +108,9 @@ export default function CampaignForm() {
   }
 
   const onSubmit = async (data: FormData) => {
-    // Allow campaigns without uploaded recipients if includeExistingEmails is true
-    if (recipients.length === 0 && !includeExistingEmails) {
-      alert('Please upload recipients or enable "Include existing emails"')
+    // Allow campaigns with selected emails, uploaded recipients, or all existing emails
+    if (recipients.length === 0 && selectedEmails.length === 0 && !includeExistingEmails) {
+      alert('Please upload recipients, select existing emails, or enable "Include all existing emails"')
       return
     }
 
@@ -119,12 +122,15 @@ export default function CampaignForm() {
         body: data.body,
         recipients: recipients.length > 0 ? recipients : undefined,
         includeExistingEmails: includeExistingEmails,
+        selectedEmails: selectedEmails.length > 0 ? selectedEmails : undefined,
       })
 
       alert('Campaign created successfully!')
       reset()
       setRecipients([])
       setIncludeExistingEmails(false)
+      setSelectedEmails([])
+      setShowEmailTable(false)
     } catch (error) {
       console.error('Error creating campaign:', error)
       alert('Failed to create campaign')
@@ -276,18 +282,67 @@ export default function CampaignForm() {
               </div>
             </div>
 
-            {/* Include Existing Emails Option */}
-            <div className="flex items-center">
-              <input
-                id="includeExistingEmails"
-                type="checkbox"
-                checked={includeExistingEmails}
-                onChange={(e) => setIncludeExistingEmails(e.target.checked)}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-              />
-              <label htmlFor="includeExistingEmails" className="ml-2 block text-sm text-gray-900">
-                Include existing emails from previous campaigns
-              </label>
+            {/* Email Selection Options */}
+            <div className="space-y-4">
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Email Selection Options</h4>
+                
+                <div className="space-y-3">
+                  {/* Select Specific Emails */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailTable(!showEmailTable)}
+                      className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                    >
+                      <div className="flex items-center">
+                        <Mail className="h-5 w-5 text-indigo-600 mr-2" />
+                        <span className="text-sm font-medium text-gray-900">
+                          Select specific emails from existing database
+                        </span>
+                        {selectedEmails.length > 0 && (
+                          <span className="ml-2 px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-medium rounded-full">
+                            {selectedEmails.length} selected
+                          </span>
+                        )}
+                      </div>
+                      {showEmailTable ? (
+                        <ChevronUp className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                    
+                    {showEmailTable && (
+                      <div className="mt-4 border rounded-lg p-4 bg-white">
+                        <EmailManagementTable
+                          selectedEmails={selectedEmails}
+                          onSelectionChange={setSelectedEmails}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Include All Existing Emails */}
+                  <div className="flex items-start px-4 py-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <input
+                      id="includeExistingEmails"
+                      type="checkbox"
+                      checked={includeExistingEmails}
+                      onChange={(e) => setIncludeExistingEmails(e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mt-0.5"
+                    />
+                    <div className="ml-3">
+                      <label htmlFor="includeExistingEmails" className="block text-sm font-medium text-gray-900">
+                        Include ALL existing emails from database
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        This will include all emails from previous campaigns (overrides specific selection)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {recipients.length > 0 && (
@@ -340,6 +395,8 @@ export default function CampaignForm() {
                   reset()
                   setRecipients([])
                   setIncludeExistingEmails(false)
+                  setSelectedEmails([])
+                  setShowEmailTable(false)
                 }}
                 className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-3"
               >
@@ -347,7 +404,7 @@ export default function CampaignForm() {
               </button>
               <button
                 type="submit"
-                disabled={submitting || (recipients.length === 0 && !includeExistingEmails)}
+                disabled={submitting || (recipients.length === 0 && selectedEmails.length === 0 && !includeExistingEmails)}
                 className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 {submitting ? 'Creating...' : 'Create Campaign'}

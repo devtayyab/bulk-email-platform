@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import { campaignService } from '@/lib/campaignService'
 import { Campaign } from '@/lib/types'
 import { Play, Eye, Trash2 } from 'lucide-react'
+import CampaignDetails from './CampaignDetails'
 
 export default function CampaignList() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null)
 
   useEffect(() => {
     loadCampaigns()
@@ -111,6 +113,13 @@ export default function CampaignList() {
                 </div>
                 <div className="flex items-center space-x-2 ml-4">
                   <button
+                    onClick={() => setSelectedCampaign(campaign)}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View
+                  </button>
+                  <button
                     onClick={() => handleStartCampaign(campaign.id)}
                     disabled={campaign.status !== 'draft'}
                     className={`inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md ${
@@ -135,6 +144,13 @@ export default function CampaignList() {
           ))
         )}
       </ul>
+      
+      {selectedCampaign && (
+        <CampaignDetails
+          campaign={selectedCampaign}
+          onClose={() => setSelectedCampaign(null)}
+        />
+      )}
     </div>
   )
 }

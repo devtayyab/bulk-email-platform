@@ -33,4 +33,9 @@ export class CreateCampaignDto {
   @IsBoolean()
   @IsOptional()
   includeExistingEmails?: boolean;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  selectedEmails?: string[];
 }
