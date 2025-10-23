@@ -59,4 +59,3 @@ logs
 .prettierrc
 .eslintrc
 .eslintignore
-tsconfig.json

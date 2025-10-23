@@ -71,7 +71,6 @@ logs
 .eslintrc
 .eslintrc.json
 .eslintignore
-tsconfig.json
 next.config.js.backup
 public/mockServiceWorker.js
 
